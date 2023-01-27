@@ -1,15 +1,25 @@
 #include <stdio.h>
+#include <time.h>
 #include <omp.h>
 #include "matrix-operations.h"
 
-int main()
+#define MATRIX_SIZE 1000
+
+void initRandomSeed()
 {
     srand(time(NULL));
-    const int numberOfThreads = 8;
-    const int rowsMatrix1 = 8;
-    const int columnsMatrix1 = 8;
-    const int rowsMatrix2 = 8;
-    const int columnsMatrix2 = 8;
+}
+
+// Executes the function at the beginning of the code
+void __attribute__((constructor)) initRandomSeed(); 
+
+int main()
+{
+    const int numberOfThreads = 20;
+    const int rowsMatrix1 = MATRIX_SIZE;
+    const int columnsMatrix1 = MATRIX_SIZE;
+    const int rowsMatrix2 = MATRIX_SIZE;
+    const int columnsMatrix2 = MATRIX_SIZE;
     const int minimumRandom = 1;
     const int maximumRandom = 1;
     const float zeroProbability = 0.0f;
@@ -18,28 +28,38 @@ int main()
     
     Matrix* matrix1_i = createRandomMatrix(rowsMatrix1, columnsMatrix1, minimumRandom, maximumRandom, zeroProbability);
     Matrix* matrix2_i = createRandomMatrix(rowsMatrix2, columnsMatrix2, minimumRandom, maximumRandom, zeroProbability);
-
-    printMatrix(matrix1_i);
-    printf("\n");
-    printMatrix(matrix2_i);
-    printf("\n");
     
-    Matrix* standardMethodResult = standardDotProduct(matrix1_i, matrix2_i);
-    Matrix* parallelMethodResult = parallelDotProduct(matrix1_i, matrix2_i);
+    clock_t start;
+    clock_t end;
+    double standardCalculationTime = 0;
+    double parallelCalculationTime = 0;
 
-    printMatrix(standardMethodResult);
-    printf("\n");
+    start = clock();
+    Matrix* standardMethodResult = standardDotProduct(matrix1_i, matrix2_i);
+    end = clock();
+    standardCalculationTime = end - start;
+
+    start = clock();
+    Matrix* parallelMethodResult = parallelDotProduct(matrix1_i, matrix2_i);
+    end = clock();
+    parallelCalculationTime = end - start;
+
+    printf("Standard: %f - Parallel: %f\nDifference: %f\n", 
+    standardCalculationTime / (double)CLOCKS_PER_SEC, 
+    parallelCalculationTime / (double)CLOCKS_PER_SEC, 
+    (standardCalculationTime - parallelCalculationTime) / (double)CLOCKS_PER_SEC);
+    
+    //printMatrix(standardMethodResult);
+    //printf("\n");
     //printMatrix(parallelMethodResult);
-    /*
-    if (isEqual(standardMethodResult, parallelMethodResult))
+    if (isEqual(parallelMethodResult, standardMethodResult) == 1)
     {
-        printf("Results are the same\n");
+        printf("Same\n");
     }
     else
     {
-        printf("Different results\n");
+        printf("Not same\n");
     }
-	*/
-    
+
     return 0;
 }
