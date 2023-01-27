@@ -134,12 +134,12 @@ Matrix* standardDotProduct(Matrix* matrix1, Matrix* matrix2)
     DATA_TYPE** result = allocateMatrix(matrix1 -> rows, matrix2 -> columns);
     int rowM1;
     int colM2;
-    int it;
     for (rowM1 = 0; rowM1 < matrix1 -> rows; rowM1++)
     {
         for (colM2 = 0; colM2 < matrix2 -> columns; colM2++)
         {
             result[rowM1][colM2] = 0;
+            int it;
             for (it = 0; it < matrix1 -> columns; it++)
             {
                 result[rowM1][colM2] += matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2];
@@ -161,20 +161,19 @@ Matrix* parallelDotProduct(Matrix* matrix1, Matrix* matrix2)
     DATA_TYPE** result = allocateMatrix(matrix1 -> rows, matrix2 -> columns);
 
     int rowM1;
-    int colM2;
-    int it;
     for (rowM1 = 0; rowM1 < matrix1 -> rows; rowM1++)
     {
-    #pragma omp parallel for
+        int colM2;
+        #pragma omp parallel for
         for (colM2 = 0; colM2 < matrix2 -> columns; colM2++)
         {
-            int threadNumber = omp_get_thread_num();
-            //printf("RowxCol: %d x %d is calculated by thread %d\n", rowM1, colM2, threadNumber);
-            result[rowM1][colM2] = 0;
+            int temp = 0;
+            int it;
             for (it = 0; it < matrix1 -> columns; it++)
             {
-                result[rowM1][colM2] += matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2];
+                temp = temp + (matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2]);
             }
+            result[rowM1][colM2] = temp;
         }
     }
 
