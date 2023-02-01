@@ -132,18 +132,25 @@ Matrix* standardDotProduct(Matrix* matrix1, Matrix* matrix2)
     }
 
     DATA_TYPE** result = allocateMatrix(matrix1 -> rows, matrix2 -> columns);
+
+    int matrix1Rows = matrix1 -> rows;
+    int matrix1Columns = matrix1 -> columns;
+    int matrix2Columns = matrix2 -> columns;
+    int temp;
+
     int rowM1;
     int colM2;
     for (rowM1 = 0; rowM1 < matrix1 -> rows; rowM1++)
     {
         for (colM2 = 0; colM2 < matrix2 -> columns; colM2++)
         {
-            result[rowM1][colM2] = 0;
+            int temp = 0;
             int it;
-            for (it = 0; it < matrix1 -> columns; it++)
+            for (it = 0; it < matrix1Columns; it++)
             {
-                result[rowM1][colM2] += matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2];
+                temp = temp + (matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2]);
             }
+            result[rowM1][colM2] = temp;
         }
     }
 
@@ -160,16 +167,19 @@ Matrix* parallelDotProduct(Matrix* matrix1, Matrix* matrix2)
 
     DATA_TYPE** result = allocateMatrix(matrix1 -> rows, matrix2 -> columns);
 
+    int matrix1Rows = matrix1 -> rows;
     int rowM1;
-    for (rowM1 = 0; rowM1 < matrix1 -> rows; rowM1++)
+    for (rowM1 = 0; rowM1 < matrix1Rows; rowM1++)
     {
         int colM2;
-        #pragma omp parallel for
-        for (colM2 = 0; colM2 < matrix2 -> columns; colM2++)
+        int matrix1Columns = matrix1 -> columns;
+        int matrix2Columns = matrix2 -> columns;
+        #pragma omp parallel for private(colM2)
+        for (colM2 = 0; colM2 < matrix2Columns; colM2++)
         {
             int temp = 0;
             int it;
-            for (it = 0; it < matrix1 -> columns; it++)
+            for (it = 0; it < matrix1Columns; it++)
             {
                 temp = temp + (matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2]);
             }
