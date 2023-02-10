@@ -172,24 +172,27 @@ Matrix* parallelDotProduct(Matrix* matrix1, Matrix* matrix2)
     int privateVar = 0;
     //int matrix1Columns = matrix1 -> columns;
     //printf("Value of matrix1Columns before parallel %d\n", matrix1Columns);
-    #pragma omp parallel for
-    for (rowM1 = 0; rowM1 < matrix1Rows; rowM1++)
+    #pragma omp parallel
     {
-        int colM2;
-        int matrix2Columns = matrix2 -> columns;
-        for (colM2 = 0; colM2 < matrix2Columns; colM2++)
+        #pragma omp for
+        for (rowM1 = 0; rowM1 < matrix1Rows; rowM1++)
         {
-            int matrix1Columns = matrix1 -> columns;
-            //printf("Value of matrix1Columns %d on thread %d\n", matrix1Columns, omp_get_thread_num());
-            int temp = 0;
-            int it;
-            for (it = 0; it < matrix1Columns; it++)
+            int colM2;
+            int matrix2Columns = matrix2 -> columns;
+            for (colM2 = 0; colM2 < matrix2Columns; colM2++)
             {
-                temp = temp + (matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2]);
+                int matrix1Columns = matrix1 -> columns;
+                //printf("Value of matrix1Columns %d on thread %d\n", matrix1Columns, omp_get_thread_num());
+                int temp = 0;
+                int it;
+                for (it = 0; it < matrix1Columns; it++)
+                {
+                    temp = temp + (matrix1 -> values[rowM1][it] * matrix2 -> values[it][colM2]);
+                }
+                privateVar = omp_get_thread_num();
+                //printf("Multiplying row %d x col %d with thread %d result %d\n", rowM1, colM2, privateVar, temp);
+                result[rowM1][colM2] = temp;
             }
-            privateVar = omp_get_thread_num();
-            //printf("Multiplying row %d x col %d with thread %d result %d\n", rowM1, colM2, privateVar, temp);
-            result[rowM1][colM2] = temp;
         }
     }
 
