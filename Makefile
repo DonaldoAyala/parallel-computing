@@ -5,7 +5,7 @@ comparison-test: parallel-vs-sequential-test.c
 	gcc -fopenmp -o test.out parallel-vs-sequential-test.c
 
 run:
-	./test.out
+	./test.out $(size)
 
 graph: plotter.py
 	make && ./test.out $(size) > size$(size).csv && python3 plotter.py $(size)
