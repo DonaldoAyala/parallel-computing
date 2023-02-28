@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-const int N = 2;
+#define N 4
 const int lowerLimit = -100;
 const int upperLimit = 100;
 
@@ -40,7 +40,7 @@ struct point
     point(double x, double y) : x(x), y(y) {}
 };
 
-__global__ void findNearestPoint(point* points, point* nearestPoints, double* nearestPointsDistances, int* blockLocks)
+__global__ void findNearestPointWithLocks(point* points, point* nearestPoints, double* nearestPointsDistances, int* blockLocks)
 {
     if (blockIdx.x == 0)
     {
@@ -53,11 +53,31 @@ __global__ void findNearestPoint(point* points, point* nearestPoints, double* ne
     }
 }
 
+__global__ void findNearestPoint(point* points, point* nearestPoints, double* nearestPointsDistances)
+{
+    int blockId = gridDim.x * gridDim.y * blockIdx.z + gridDim.x * blockIdx.y + blockIdx.x;
+    int threadId = blockDim.x * blockDim.y * threadIdx.z + blockDim.x * threadIdx.y + threadIdx.x + blockId * (blockDim.x * blockDim.y * blockDim.z);    
+    
+    point A = points[threadId];
+    for (int i = 0; i < N; i++) 
+    {
+        if (threadId == i) continue;
+        point B = points[i];
+        double distance = sqrt((A.x - B.x) * (A.x - B.x) + (A.y - B.y) * (A.y - B.y));
+        if (distance < nearestPointsDistances[threadId]) 
+        {
+            //printf("Closest to point (%f,%f) is (%f,%f) at euclidian distance of %f\n", A.x, A.y, B.x, B.y, distance);
+            nearestPointsDistances[threadId] = distance;
+            nearestPoints[threadId] = B;
+        }
+    }
+}
+
 int main () {
     srand(time(NULL));
     cudaDeviceReset();
 
-    dim3 gridSize(N);
+    dim3 gridSize(1);
     dim3 blockSize(N);
 
     // Declaring and initializing host variables
@@ -70,8 +90,8 @@ int main () {
         blockLocks[i] = 0;
         points[i].x = lowerLimit + rand() % ((upperLimit - lowerLimit) + 1);
         points[i].y = lowerLimit + rand() % ((upperLimit - lowerLimit) + 1);
-        nearestPointsDistances[i] = 0;//(upperLimit - lowerLimit) + 10; // The maximum distance plus an extra 10
-        printf("(%f,%f)\n", points[i].x, points[i].y);
+        nearestPointsDistances[i] = (upperLimit - lowerLimit) + 10; // The maximum distance plus an extra 10
+        //printf("(%f,%f)\n", points[i].x, points[i].y);
     }
 
     // Create device variables and allocate memory on device
@@ -90,7 +110,7 @@ int main () {
     cudaMemcpy(blockLocks_d, blockLocks, N * sizeof(int), cudaMemcpyHostToDevice);
 
     // Execute kernel
-    findNearestPoint<<<gridSize, blockSize>>>(points_d, nearestPoints_d, nearestPointsDistances_d, blockLocks_d);
+    findNearestPoint<<<gridSize, blockSize>>>(points_d, nearestPoints_d, nearestPointsDistances_d);
     
     // Wait till every thread has finished
     cudaDeviceSynchronize();
