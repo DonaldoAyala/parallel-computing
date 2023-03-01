@@ -4,5 +4,8 @@ compile: nearest-points.cu
 run: exe.out
 	./exe.out
 
-graph: nearest-points.cu plotter.py
-	make compile && ./exe.out > coordinates.csv && python3 plotter.py
+time-graph: nearest-points.cu time-plotter.py
+	make compile && ./exe.out > times.csv && python3 time-plotter.py
+
+coordinate-graph: nearest-points.cu coordinate-plotter.py
+	make compile && ./exe.out > coordinates.csv && python3 coordinate-plotter.py
