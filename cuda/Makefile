@@ -3,3 +3,6 @@ compile: nearest-points.cu
 
 run: exe.out
 	./exe.out
+
+graph: nearest-points.cu plotter.py
+	make compile && ./exe.out > coordinates.csv && python3 plotter.py

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#define N 4
-const int lowerLimit = -100;
-const int upperLimit = 100;
+#define N 30
+const int lowerLimit = -200;
+const int upperLimit = 200;
 
 struct Lock {
 
@@ -16,7 +16,7 @@ struct Lock {
     }
 
     // --- Destructor
-    __host__ __device__ ~Lock(void) { 
+    __host__ __device__ ~Lock(void) {
     #if !defined(__CUDACC__)
         cudaFree(d_state); 
     #else
@@ -45,9 +45,7 @@ __global__ void findNearestPointWithLocks(point* points, point* nearestPoints, d
     if (blockIdx.x == 0)
     {
         int id = blockIdx.x;
-        printf("Lock at %d with value %d\n", threadIdx.x, blockLocks[id]);
         while (atomicCAS(&blockLocks[id], 0, 1) != 0) ; // lock();
-        printf("Thread %d aquired the lock\n", threadIdx.x);
         nearestPointsDistances[id] += 1;
         atomicExch(&blockLocks[id], 0); // unlock();
     }
@@ -66,7 +64,6 @@ __global__ void findNearestPoint(point* points, point* nearestPoints, double* ne
         double distance = sqrt((A.x - B.x) * (A.x - B.x) + (A.y - B.y) * (A.y - B.y));
         if (distance < nearestPointsDistances[threadId]) 
         {
-            //printf("Closest to point (%f,%f) is (%f,%f) at euclidian distance of %f\n", A.x, A.y, B.x, B.y, distance);
             nearestPointsDistances[threadId] = distance;
             nearestPoints[threadId] = B;
         }
@@ -91,7 +88,6 @@ int main () {
         points[i].x = lowerLimit + rand() % ((upperLimit - lowerLimit) + 1);
         points[i].y = lowerLimit + rand() % ((upperLimit - lowerLimit) + 1);
         nearestPointsDistances[i] = (upperLimit - lowerLimit) + 10; // The maximum distance plus an extra 10
-        //printf("(%f,%f)\n", points[i].x, points[i].y);
     }
 
     // Create device variables and allocate memory on device
@@ -119,12 +115,31 @@ int main () {
     cudaMemcpy(nearestPointsDistances, nearestPointsDistances_d, N * sizeof(double), cudaMemcpyDeviceToHost);
     cudaMemcpy(nearestPoints, nearestPoints_d, N * sizeof(point), cudaMemcpyDeviceToHost);
 
-    // Print results
-    for (int i = 0; i < N; i++)
+    // Search for the nearest points
+    point pointA = points[0];
+    point pointB = nearestPoints[0];
+    double nearestPointsDistance = nearestPointsDistances[0];
+    for (int i = 1; i < N; i++)
     {
-        printf("Closest to point (%f,%f) is (%f,%f) at euclidian distance of %f\n",
-        points[i].x, points[i].y, nearestPoints[i].x, nearestPoints[i].y, nearestPointsDistances[i]);
+        if (nearestPointsDistances[i] < nearestPointsDistance) 
+        {
+            nearestPointsDistance = nearestPointsDistances[i];
+            pointA = points[i];
+            pointB = nearestPoints[i];
+        }
     }
+
+    // Print number of points
+    printf("%d\n", N);
+    // Print points coordinates
+    for (int i = 0; i < N; i++) 
+    {
+        printf("%f,%f\n", points[i].x, points[i].y);
+    }
+    // Print nearest poins and distance
+    printf("%f,%f\n", pointA.x, pointA.y);
+    printf("%f,%f\n", pointB.x, pointB.y);
+    printf("%f\n", nearestPointsDistance);
 
     // Free all resources
     cudaDeviceReset();
